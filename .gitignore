@@ -1,0 +1,10 @@
+# 抓取下來的內容 (逐字稿/文章) 不上傳 — 版權與隱私考量
+data/
+seen.json
+
+# 瀏覽器設定檔 (含 cookies, 絕不可上傳)
+browser_profile/
+
+# Python
+__pycache__/
+*.pyc

@@ -1,0 +1,18 @@
+{
+  "youtube": [
+    {
+      "name": "游庭皓的財經皓角",
+      "channel_id": "UC0lbAQVpenvfA2QqzsRtL_g",
+      "max_videos": 2,
+      "languages": ["zh-TW", "zh-Hant", "zh", "zh-Hans", "en"]
+    }
+  ],
+  "dcard": [
+    {
+      "name": "Dcard股票版-熱門",
+      "forum": "stock",
+      "keyword": "",
+      "max_posts": 3
+    }
+  ]
+}
