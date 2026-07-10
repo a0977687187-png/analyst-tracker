@@ -5,6 +5,9 @@ seen.json
 # 瀏覽器設定檔 (含 cookies, 絕不可上傳)
 browser_profile/
 
+# 儀表板快取
+dashboard/cache/
+
 # Python
 __pycache__/
 *.pyc
