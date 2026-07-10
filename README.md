@@ -1,5 +1,18 @@
 # 分析師內容自動抓取工具 — 使用說明
 
+## 在新電腦上安裝（轉移用）
+1. 安裝 [Python 3.12+](https://www.python.org/downloads/)（安裝時勾選 **Add python.exe to PATH**）與 [Git](https://git-scm.com/download/win)。
+2. 開啟 PowerShell，下載本專案（私人倉庫，需登入 GitHub）：
+   ```powershell
+   winget install GitHub.cli
+   gh auth login          # 選 GitHub.com -> HTTPS -> Login with a web browser
+   gh repo clone a0977687187-png/analyst-tracker "$HOME\Desktop\analyst-tracker"
+   ```
+3. 進入資料夾，雙擊 **安裝.bat**（安裝 Python 套件與 Playwright 瀏覽器）。
+4. 雙擊 **抓取.bat** 開始抓取；第一次 Dcard 需重新點一次人機驗證。
+5. （選用）舊電腦的 `data/` 與 `seen.json` 若要保留歷史，用隨身碟複製到新資料夾即可。
+   注意：資料夾路徑建議用英文，避免中文路徑造成瀏覽器啟動問題。
+
 ## 一鍵執行
 直接雙擊 **抓取.bat**，會自動抓取 `config.json` 裡所有來源，存到 `data/` 資料夾。
 
