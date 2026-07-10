@@ -144,12 +144,8 @@ def index_kline():
     return jsonify(out)
 
 
-@app.route("/api/stock_kline")
-def stock_kline():
-    code = re.sub(r"\W", "", request.args.get("code", ""))
-    months = min(int(request.args.get("months", 6)), 24)
-    if not code:
-        return jsonify({"error": "缺少股票代號"}), 400
+def get_stock_kline(code, months):
+    """上市/上櫃個股日K, 回傳 [{time,open,high,low,close,volume}, ...] 由舊到新"""
     out = []
     for d in month_starts(months):
         rows = twse_month_kline(
@@ -163,7 +159,7 @@ def stock_kline():
             out.append({"time": roc_to_iso(row[0]), "open": o, "high": h, "low": l, "close": c,
                         "volume": (vol or 0) / 1000})
     if out:
-        return jsonify(out)
+        return out
     # 上櫃個股: 櫃買舊API
     for d in month_starts(months):
         key = f"otcstk_{code}_{d:%Y%m}"
@@ -183,7 +179,16 @@ def stock_kline():
                 continue
             out.append({"time": roc_to_iso(row[0]), "open": o, "high": h, "low": l, "close": c,
                         "volume": num(row[1]) or 0})
-    return jsonify(out)
+    return out
+
+
+@app.route("/api/stock_kline")
+def stock_kline():
+    code = re.sub(r"\W", "", request.args.get("code", ""))
+    months = min(int(request.args.get("months", 6)), 24)
+    if not code:
+        return jsonify({"error": "缺少股票代號"}), 400
+    return jsonify(get_stock_kline(code, months))
 
 
 # ---------------- 即時報價 ----------------
@@ -447,6 +452,136 @@ def recommendations():
         return jsonify([])
     with open(REC_PATH, encoding="utf-8") as f:
         return jsonify(json.load(f))
+
+
+# ---------------- 觀點回測 + 分析師績效歸因 ----------------
+
+def first_num(x):
+    """從數字或字串中取出第一個數值, 例 '980-1000' -> 980.0"""
+    if isinstance(x, (int, float)):
+        return float(x)
+    m = re.search(r"\d+(?:\.\d+)?", str(x or ""))
+    return float(m.group()) if m else None
+
+
+def months_between(d1, d2):
+    return (d2.year - d1.year) * 12 + (d2.month - d1.month) + 1
+
+
+def backtest_one(rec):
+    """依規劃書結案規則回測單筆觀點:
+    觸目標價=達標(勝) / 觸停損=停損(敗) / 超過60天=以現價強制結案 / 其餘=進行中"""
+    out = {**rec}
+    try:
+        rec_date = datetime.strptime(rec["date"], "%Y-%m-%d").date()
+    except Exception:
+        out.update({"status": "資料錯誤", "error": "date 格式須為 YYYY-MM-DD"})
+        return out
+    code = re.sub(r"\W", "", rec.get("code", ""))
+    months = min(months_between(rec_date, date.today()), 24)
+    klines = get_stock_kline(code, months)
+    after = [k for k in klines if k["time"] >= rec["date"]]
+    if not after:
+        status = "等待收盤" if rec_date >= date.today() else "無資料"
+        out.update({"status": status, "days": (date.today() - rec_date).days})
+        return out
+    base = after[0]["close"]          # 發布日(或次一交易日)收盤 = 績效基準價
+    is_long = rec.get("direction") != "賣出"
+    stop, target = first_num(rec.get("stop")), first_num(rec.get("target"))
+    status, close_price, close_date = "進行中", after[-1]["close"], after[-1]["time"]
+    for k in after[1:]:               # 發布日之後逐日檢查觸價
+        if is_long:
+            if stop and k["low"] <= stop:
+                status, close_price, close_date = "停損", stop, k["time"]
+                break
+            if target and k["high"] >= target:
+                status, close_price, close_date = "達標", target, k["time"]
+                break
+        else:
+            if stop and k["high"] >= stop:
+                status, close_price, close_date = "停損", stop, k["time"]
+                break
+            if target and k["low"] <= target:
+                status, close_price, close_date = "達標", target, k["time"]
+                break
+    days = (datetime.strptime(close_date, "%Y-%m-%d").date() - rec_date).days
+    if status == "進行中" and (date.today() - rec_date).days > 60:
+        status = "強制結案"           # 超過60天未觸發 -> 以當前價結案
+    ret = (close_price - base) / base * 100
+    if not is_long:
+        ret = -ret
+    out.update({
+        "status": status, "base_price": round(base, 2), "close_price": round(close_price, 2),
+        "close_date": close_date, "return_pct": round(ret, 2), "days": days,
+        "closed": status in ("達標", "停損", "強制結案"),
+        "win": status == "達標" or (status == "強制結案" and ret > 0),
+    })
+    return out
+
+
+def analyst_rating(win_rate, n):
+    """規劃書 5.3: A=勝率≥65%且樣本≥20 / B=55-65%或10-19筆穩定 / C=45-55% / D=<45%"""
+    if n == 0:
+        return "—"
+    if win_rate >= 65 and n >= 20:
+        return "A"
+    if win_rate >= 55:
+        return "B"
+    if win_rate >= 45:
+        return "C"
+    return "D"
+
+
+@app.route("/api/backtest")
+def backtest():
+    if not os.path.exists(REC_PATH):
+        return jsonify({"views": [], "analysts": []})
+    mtime = int(os.path.getmtime(REC_PATH))
+    key = f"backtest_{mtime}"
+    cached = cache_get(key, 600)
+    if cached is not None:
+        return jsonify(cached)
+    with open(REC_PATH, encoding="utf-8") as f:
+        recs = json.load(f)
+    views = [backtest_one(r) for r in recs]
+    # 依分析師彙總 (僅已結案觀點計入勝率, 依規劃書)
+    by = {}
+    for v in views:
+        a = by.setdefault(v.get("analyst", "未知"), {
+            "analyst": v.get("analyst", "未知"), "total": 0, "closed": 0, "wins": 0,
+            "returns": [], "days": [], "hi_total": 0, "hi_wins": 0, "open_returns": []})
+        a["total"] += 1
+        if v.get("closed"):
+            a["closed"] += 1
+            a["returns"].append(v["return_pct"])
+            a["days"].append(v["days"])
+            if v.get("win"):
+                a["wins"] += 1
+            if (v.get("confidence") or 0) >= 8:
+                a["hi_total"] += 1
+                if v.get("win"):
+                    a["hi_wins"] += 1
+        elif v.get("return_pct") is not None:
+            a["open_returns"].append(v["return_pct"])
+    analysts = []
+    for a in by.values():
+        n = a["closed"]
+        win_rate = round(a["wins"] / n * 100, 1) if n else None
+        analysts.append({
+            "analyst": a["analyst"], "total": a["total"], "closed": n,
+            "win_rate": win_rate,
+            "avg_return": round(sum(a["returns"]) / n, 2) if n else None,
+            "avg_days": round(sum(a["days"]) / n, 1) if n else None,
+            "max_loss": round(min(a["returns"]), 2) if a["returns"] else None,
+            "hi_win_rate": round(a["hi_wins"] / a["hi_total"] * 100, 1) if a["hi_total"] else None,
+            "open_avg_return": round(sum(a["open_returns"]) / len(a["open_returns"]), 2) if a["open_returns"] else None,
+            "rating": analyst_rating(win_rate or 0, n),
+            "low_sample": n < 10,     # 規劃書: 樣本<10 標註統計信度不足
+        })
+    analysts.sort(key=lambda x: (x["win_rate"] or -1, x["avg_return"] or -999), reverse=True)
+    result = {"views": views, "analysts": analysts}
+    cache_set(key, result)
+    return jsonify(result)
 
 
 @app.route("/")
