@@ -1,14 +1,32 @@
 {
   "youtube": [
     {
-      "name": "游庭皓的財經皓角",
-      "channel_id": "UC0lbAQVpenvfA2QqzsRtL_g",
+      "name": "林漢偉分析師-摩爾證券投顧",
+      "channel_id": "UCleWOsRmPBhWPvQlSTy7fPw",
       "max_videos": 2,
       "languages": ["zh-TW", "zh-Hant", "zh", "zh-Hans", "en"]
     },
     {
-      "name": "艾綸說",
-      "channel_id": "UCE5zlVSpAS5BAEsH-yHJWYw",
+      "name": "高憲容分析師-運達投顧",
+      "channel_id": "UCLgvPErwyRJvul5RIuvy5jg",
+      "max_videos": 2,
+      "languages": ["zh-TW", "zh-Hant", "zh", "zh-Hans", "en"]
+    },
+    {
+      "name": "紀緯明分析師-永誠國際投顧",
+      "channel_id": "UCOZosuCbpzK7Optwppn0whA",
+      "max_videos": 2,
+      "languages": ["zh-TW", "zh-Hant", "zh", "zh-Hans", "en"]
+    },
+    {
+      "name": "韭菜畢業班-叔叔",
+      "channel_id": "UCtnyKmJ_F2iO3_MObmY8u1w",
+      "max_videos": 2,
+      "languages": ["zh-TW", "zh-Hant", "zh", "zh-Hans", "en"]
+    },
+    {
+      "name": "陳威良-股市全威",
+      "channel_id": "UCOJb2Ygitq3bMAigMLfYKRQ",
       "max_videos": 2,
       "languages": ["zh-TW", "zh-Hant", "zh", "zh-Hans", "en"]
     }
