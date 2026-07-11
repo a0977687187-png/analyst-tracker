@@ -446,12 +446,46 @@ def chips():
 
 # ---------------- 推薦標的 (觀點記錄卡) ----------------
 
+def load_recommendations():
+    if not os.path.exists(REC_PATH):
+        return []
+    with open(REC_PATH, encoding="utf-8") as f:
+        recs = json.load(f)
+    changed = False
+    next_id = max([r.get("id", 0) for r in recs], default=0) + 1
+    for r in recs:                    # 舊資料補上 id, 供手動編輯定位
+        if "id" not in r:
+            r["id"] = next_id
+            next_id += 1
+            changed = True
+    if changed:
+        save_recommendations(recs)
+    return recs
+
+
+def save_recommendations(recs):
+    with open(REC_PATH, "w", encoding="utf-8") as f:
+        json.dump(recs, f, ensure_ascii=False, indent=2)
+
+
 @app.route("/api/recommendations")
 def recommendations():
-    if not os.path.exists(REC_PATH):
-        return jsonify([])
-    with open(REC_PATH, encoding="utf-8") as f:
-        return jsonify(json.load(f))
+    return jsonify(load_recommendations())
+
+
+@app.route("/api/recommendations/<int:rec_id>", methods=["PATCH"])
+def update_recommendation(rec_id):
+    """手動調整某筆觀點的停損/目標價 (傳 null 可清除手動值, 改回系統技術面推估)"""
+    recs = load_recommendations()
+    rec = next((r for r in recs if r["id"] == rec_id), None)
+    if rec is None:
+        return jsonify({"error": "找不到這筆觀點"}), 404
+    data = request.get_json(force=True, silent=True) or {}
+    for field in ("stop", "target"):
+        if field in data:
+            rec[field] = first_num(data[field]) if data[field] not in (None, "") else None
+    save_recommendations(recs)
+    return jsonify(rec)
 
 
 # ---------------- 觀點回測 + 分析師績效歸因 ----------------
@@ -466,6 +500,32 @@ def first_num(x):
 
 def months_between(d1, d2):
     return (d2.year - d1.year) * 12 + (d2.month - d1.month) + 1
+
+
+def technical_stop(klines, rec_date_iso, base, support, is_long):
+    """分析師未提供停損時, 依規劃書「由系統依支撐位補建議, 並標註系統推估」自動計算:
+    1. 有給支撐/壓力位 (support) 且方向合理 -> 直接採用
+    2. 否則抓發布日之前近20個交易日的低點(做多)/高點(做空), 抓當作技術支撐, 抓抓略留1%緩衝
+    3. 都沒有資料 -> 退回保守預設: 做多 base*0.93 (-7%) / 做空 base*1.07 (+7%)"""
+    sup = first_num(support)
+    if is_long:
+        if sup and 0 < sup < base:
+            return round(sup, 2), "支撐位(分析師提供)"
+        before = [k["low"] for k in klines if k["time"] < rec_date_iso][-20:]
+        if before:
+            swing_low = min(before)
+            if swing_low < base:
+                return round(swing_low * 0.99, 2), "技術面(近20日低點)"
+        return round(base * 0.93, 2), "系統預設(-7%)"
+    else:
+        if sup and sup > base:
+            return round(sup, 2), "壓力位(分析師提供)"
+        before = [k["high"] for k in klines if k["time"] < rec_date_iso][-20:]
+        if before:
+            swing_high = max(before)
+            if swing_high > base:
+                return round(swing_high * 1.01, 2), "技術面(近20日高點)"
+        return round(base * 1.07, 2), "系統預設(+7%)"
 
 
 def backtest_one(rec):
@@ -488,6 +548,12 @@ def backtest_one(rec):
     base = after[0]["close"]          # 發布日(或次一交易日)收盤 = 績效基準價
     is_long = rec.get("direction") != "賣出"
     stop, target = first_num(rec.get("stop")), first_num(rec.get("target"))
+    stop_source = "分析師提供"
+    if not stop:
+        stop, stop_source = technical_stop(klines, rec["date"], base, rec.get("support"), is_long)
+    out["stop_estimated"] = not bool(first_num(rec.get("stop")))
+    out["stop_source"] = stop_source
+    out["stop"] = stop                # 回測明細顯示的是「實際使用」的停損 (分析師給的或系統推估)
     status, close_price, close_date = "進行中", after[-1]["close"], after[-1]["time"]
     for k in after[1:]:               # 發布日之後逐日檢查觸價
         if is_long:
@@ -541,8 +607,7 @@ def backtest():
     cached = cache_get(key, 600)
     if cached is not None:
         return jsonify(cached)
-    with open(REC_PATH, encoding="utf-8") as f:
-        recs = json.load(f)
+    recs = load_recommendations()
     views = [backtest_one(r) for r in recs]
     # 依分析師彙總 (僅已結案觀點計入勝率, 依規劃書)
     by = {}

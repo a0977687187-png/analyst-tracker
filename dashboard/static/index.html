@@ -104,6 +104,11 @@ td:first-child,th:first-child{text-align:left}
 td:first-child{font-family:'Barlow','Microsoft JhengHei',sans-serif}
 tr.clk{cursor:pointer}
 tbody tr:hover{background:#fff8e6}
+td.editable{cursor:text}
+td.editable:hover{background:#eef4ff;outline:1px dashed var(--steel-400)}
+td.editable input{font-family:'JetBrains Mono',monospace;font-size:13px;border:1px solid var(--amber);
+  border-radius:4px;padding:3px 6px;text-align:right}
+td.editable input:focus{outline:2px solid var(--amber)}
 
 /* ---------- 按鈕 / 輸入 ---------- */
 .btn{border-radius:8px;padding:8px 18px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Barlow','Microsoft JhengHei',sans-serif}
@@ -568,17 +573,50 @@ function loadBacktest(){
         <td class="txt">${v.analyst}</td>
         <td>${v.date}</td>
         <td>${v.base_price==null?"—":fmt(v.base_price)}</td>
-        <td>${fmt(v.stop)}</td><td>${fmt(v.target)}</td>
+        <td class="editable" data-id="${v.id}" data-field="stop" data-raw="${v.stop_estimated?"":(v.stop??"")}"
+            title="點擊手動調整停損${v.stop_estimated?'（目前為系統推估: '+v.stop_source+'）':''}" onclick="editCell(event,this)">
+          ${fmt(v.stop)}${v.stop_estimated?' <span class="badge st-force" style="margin-left:3px">推估</span>':''}</td>
+        <td class="editable" data-id="${v.id}" data-field="target" data-raw="${v.target??""}"
+            title="點擊手動調整目標價" onclick="editCell(event,this)">${fmt(v.target)}</td>
         <td>${v.close_price==null?"—":fmt(v.close_price)}</td>
         <td class="${(v.return_pct||0)>=0?"up":"dn"}">${v.return_pct==null?"—":(v.return_pct>=0?"+":"")+v.return_pct+"%"}</td>
         <td>${v.days==null?"—":v.days+"天"}</td>
         <td style="text-align:center"><span class="badge ${stBadge(v.status)}">${v.status}</span></td>
         <td>${v.confidence||"—"}/10</td></tr>`).join("") +
-      `</tbody></table><div class="hint">點擊列可跳至個股K線 · 回測每10分鐘更新一次</div>`;
+      `</tbody></table><div class="hint">點擊列可跳至個股K線 · 點擊「停損」「目標」欄可手動調整 (停損清空則恢復系統技術面推估) · 回測每10分鐘更新一次</div>`;
   }).catch(e=>{
     $("viewsTable").innerHTML = '<div class="empty"><span class="ico">⚠️</span>回測資料載入失敗, 請稍後重試</div>';
     toast("回測資料載入失敗: " + e.message);
   });
+}
+
+/* ---------- 觀點回測: 手動調整停損/目標 ---------- */
+function editCell(ev, td){
+  ev.stopPropagation();
+  if (td.querySelector("input")) return;
+  const raw = td.dataset.raw;
+  td.dataset.prev = td.innerHTML;
+  td.innerHTML = `<input type="text" value="${raw}" placeholder="留空=自動" style="width:76px">`;
+  const inp = td.querySelector("input");
+  inp.focus(); inp.select();
+  inp.addEventListener("click", e=>e.stopPropagation());
+  inp.addEventListener("keydown", e=>{
+    if (e.key === "Enter") inp.blur();
+    if (e.key === "Escape"){ td.innerHTML = td.dataset.prev; }
+  });
+  inp.addEventListener("blur", ()=>saveCell(td, inp.value.trim()));
+}
+async function saveCell(td, value){
+  if (!td.querySelector("input")) return;   // 已經被 Escape 復原
+  const id = td.dataset.id, field = td.dataset.field;
+  const body = {}; body[field] = value === "" ? null : value;
+  try{
+    const r = await fetch("/api/recommendations/"+id, {
+      method: "PATCH", headers: {"Content-Type":"application/json"}, body: JSON.stringify(body)});
+    if (!r.ok) throw new Error((await r.json()).error || r.statusText);
+    toast((field==="stop"?"停損":"目標價") + " 已更新" + (value===""?" (改回系統推估)":""));
+    loadBacktest();
+  }catch(e){ toast("更新失敗: " + e.message); td.innerHTML = td.dataset.prev; }
 }
 
 /* ---------- 啟動 ---------- */
