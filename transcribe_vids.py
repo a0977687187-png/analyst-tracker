@@ -3,10 +3,9 @@
 用法: python transcribe_vids.py <video_id> [<video_id> ...]
 輸出與 fetch.py 相同格式, 存進 data/<頻道名>/, 並記入 seen.json
 """
-import sys, io, re, json, os
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+import sys, re, json, os
 import requests
-import fetch as F
+import fetch as F   # fetch.py 於 import 時已將 stdout 設為 utf-8, 此處不可重複包裝
 
 UA = F.UA
 

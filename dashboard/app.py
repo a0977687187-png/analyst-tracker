@@ -160,16 +160,17 @@ def get_stock_kline(code, months):
                         "volume": (vol or 0) / 1000})
     if out:
         return out
-    # 上櫃個股: 櫃買舊API
+    # 上櫃個股: 櫃買新版API (舊 st43_result.php 已停用)
     for d in month_starts(months):
         key = f"otcstk_{code}_{d:%Y%m}"
         rows = cache_get(key, None if is_past_month(d) else 600)
         if rows is None:
             try:
-                r = requests.get("https://www.tpex.org.tw/web/stock/aftertrading/daily_trading_info/st43_result.php",
-                                 params={"l": "zh-tw", "d": f"{d.year - 1911}/{d.month:02d}", "stkno": code},
+                r = requests.get("https://www.tpex.org.tw/www/zh-tw/afterTrading/tradingStock",
+                                 params={"code": code, "date": f"{d:%Y/%m/%d}", "response": "json"},
                                  headers=UA, timeout=20)
-                rows = r.json().get("aaData") or []
+                tables = r.json().get("tables") or []
+                rows = tables[0].get("data") or [] if tables else []
             except Exception:
                 rows = []
             cache_set(key, rows)
