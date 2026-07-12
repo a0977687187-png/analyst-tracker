@@ -1,22 +1,16 @@
 {
   "youtube": [
     {
-      "name": "林漢偉分析師-摩爾證券投顧",
-      "channel_id": "UCleWOsRmPBhWPvQlSTy7fPw",
-      "max_videos": 2,
-      "languages": ["zh-TW", "zh-Hant", "zh", "zh-Hans", "en"]
-    },
-    {
-      "name": "韭菜畢業班-叔叔",
-      "channel_id": "UCtnyKmJ_F2iO3_MObmY8u1w",
-      "max_videos": 2,
-      "languages": ["zh-TW", "zh-Hant", "zh", "zh-Hans", "en"]
-    },
-    {
       "name": "理財達人秀",
       "channel_id": "UCQvsuaih5lE0n_Ne54nNezg",
       "max_videos": 3,
-      "languages": ["zh-TW", "zh-Hant", "zh", "zh-Hans", "en"],
+      "languages": [
+        "zh-TW",
+        "zh-Hant",
+        "zh",
+        "zh-Hans",
+        "en"
+      ],
       "whisper": true,
       "multi_analyst": true,
       "note": "節目型頻道關閉了字幕, 用Whisper本地語音辨識; 每集有多位來賓分析師, 提取觀點時 analyst 欄位填實際發言的分析師姓名(標題feat.XXX), 不填頻道名"

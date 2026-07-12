@@ -447,6 +447,36 @@ def chips():
 
 # ---------------- 推薦標的 (觀點記錄卡) ----------------
 
+def merge_duplicates(recs):
+    """同標的+同方向的觀點併成一筆: 分析師欄以「、」串接顯示多位推薦,
+    保留信心較高者的價位設定, 日期取最早發布日(績效基準)"""
+    groups = {}
+    for r in recs:
+        groups.setdefault((r.get("code"), r.get("direction")), []).append(r)
+    out, changed = [], False
+    for lst in groups.values():
+        if len(lst) == 1:
+            out.append(lst[0])
+            continue
+        changed = True
+        lst.sort(key=lambda x: -(x.get("confidence") or 0))
+        base = lst[0]
+        names = []
+        for r in sorted(lst, key=lambda x: x.get("id", 0)):
+            for n in str(r.get("analyst", "")).split("、"):
+                if n and n not in names:
+                    names.append(n)
+        base["analyst"] = "、".join(names)
+        base["date"] = min(r.get("date", "") for r in lst if r.get("date"))
+        for field in ("stop", "target", "support"):
+            if base.get(field) is None:
+                base[field] = next((r.get(field) for r in lst[1:] if r.get(field) is not None), None)
+        base["note"] = (base.get("note") or "") + f"（{len(names)}位分析師共同推薦, 已合併）"
+        out.append(base)
+    out.sort(key=lambda x: x.get("id", 0))
+    return out, changed
+
+
 def load_recommendations():
     if not os.path.exists(REC_PATH):
         return []
@@ -459,7 +489,8 @@ def load_recommendations():
             r["id"] = next_id
             next_id += 1
             changed = True
-    if changed:
+    recs, merged = merge_duplicates(recs)
+    if changed or merged:
         save_recommendations(recs)
     return recs
 
@@ -487,6 +518,17 @@ def update_recommendation(rec_id):
             rec[field] = first_num(data[field]) if data[field] not in (None, "") else None
     save_recommendations(recs)
     return jsonify(rec)
+
+
+@app.route("/api/recommendations/<int:rec_id>", methods=["DELETE"])
+def delete_recommendation(rec_id):
+    """手動刪除不想追蹤的觀點"""
+    recs = load_recommendations()
+    remain = [r for r in recs if r["id"] != rec_id]
+    if len(remain) == len(recs):
+        return jsonify({"error": "找不到這筆觀點"}), 404
+    save_recommendations(remain)
+    return jsonify({"ok": True, "deleted": rec_id})
 
 
 # ---------------- 觀點回測 + 分析師績效歸因 ----------------
@@ -612,10 +654,13 @@ def backtest():
     recs = load_recommendations()
     views = [backtest_one(r) for r in recs]
     # 依分析師彙總 (僅已結案觀點計入勝率, 依規劃書)
+    # 合併觀點的 analyst 為「甲、乙」多人串接 -> 拆開後每位都記入這筆成績
     by = {}
-    for v in views:
-        a = by.setdefault(v.get("analyst", "未知"), {
-            "analyst": v.get("analyst", "未知"), "total": 0, "closed": 0, "wins": 0,
+    expanded = [(name, v) for v in views
+                for name in str(v.get("analyst") or "未知").split("、") if name]
+    for name, v in expanded:
+        a = by.setdefault(name, {
+            "analyst": name, "total": 0, "closed": 0, "wins": 0,
             "returns": [], "days": [], "hi_total": 0, "hi_wins": 0, "open_returns": []})
         a["total"] += 1
         if v.get("closed"):

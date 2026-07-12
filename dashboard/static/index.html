@@ -109,6 +109,8 @@ td.editable:hover{background:#eef4ff;outline:1px dashed var(--steel-400)}
 td.editable input{font-family:'JetBrains Mono',monospace;font-size:13px;border:1px solid var(--amber);
   border-radius:4px;padding:3px 6px;text-align:right}
 td.editable input:focus{outline:2px solid var(--amber)}
+.delbtn{background:transparent;border:0;cursor:pointer;font-size:14px;opacity:.35;padding:2px 4px}
+.delbtn:hover{opacity:1}
 
 /* ---------- 按鈕 / 輸入 ---------- */
 .btn{border-radius:8px;padding:8px 18px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Barlow','Microsoft JhengHei',sans-serif}
@@ -566,7 +568,7 @@ function loadBacktest(){
     }
     $("viewsTable").innerHTML = `<table><thead><tr>
       <th>標的</th><th>方向</th><th>分析師</th><th>發布日</th><th>基準價</th><th>停損</th><th>目標</th>
-      <th>結案/現價</th><th>報酬率</th><th>持有</th><th style="text-align:center">狀態</th><th>信心</th></tr></thead><tbody>` +
+      <th>結案/現價</th><th>報酬率</th><th>持有</th><th style="text-align:center">狀態</th><th>信心</th><th></th></tr></thead><tbody>` +
       vs.map(v=>`<tr class="clk" onclick="gotoStock('${v.code}')">
         <td>${v.code} ${v.name||""}</td>
         <td class="txt"><span class="badge ${v.direction==="買入"?"buy":"sell"}">${v.direction}</span></td>
@@ -582,8 +584,9 @@ function loadBacktest(){
         <td class="${(v.return_pct||0)>=0?"up":"dn"}">${v.return_pct==null?"—":(v.return_pct>=0?"+":"")+v.return_pct+"%"}</td>
         <td>${v.days==null?"—":v.days+"天"}</td>
         <td style="text-align:center"><span class="badge ${stBadge(v.status)}">${v.status}</span></td>
-        <td>${v.confidence||"—"}/10</td></tr>`).join("") +
-      `</tbody></table><div class="hint">點擊列可跳至個股K線 · 點擊「停損」「目標」欄可手動調整 (停損清空則恢復系統技術面推估) · 回測每10分鐘更新一次</div>`;
+        <td>${v.confidence||"—"}/10</td>
+        <td><button class="delbtn" title="刪除這筆觀點" onclick="delRec(event, ${v.id}, '${v.code} ${v.name||""}')">🗑</button></td></tr>`).join("") +
+      `</tbody></table><div class="hint">點擊列可跳至個股K線 · 點擊「停損」「目標」欄可手動調整 (停損清空則恢復系統技術面推估) · 🗑 可刪除不想追蹤的觀點 · 回測每10分鐘更新一次</div>`;
   }).catch(e=>{
     $("viewsTable").innerHTML = '<div class="empty"><span class="ico">⚠️</span>回測資料載入失敗, 請稍後重試</div>';
     toast("回測資料載入失敗: " + e.message);
@@ -605,6 +608,16 @@ function editCell(ev, td){
     if (e.key === "Escape"){ td.innerHTML = td.dataset.prev; }
   });
   inp.addEventListener("blur", ()=>saveCell(td, inp.value.trim()));
+}
+async function delRec(ev, id, label){
+  ev.stopPropagation();
+  if (!confirm("確定刪除「" + label + "」這筆觀點？刪除後不再回測追蹤。")) return;
+  try{
+    const r = await fetch("/api/recommendations/"+id, {method:"DELETE"});
+    if (!r.ok) throw new Error((await r.json()).error || r.statusText);
+    toast("已刪除 " + label);
+    loadBacktest(); loadRecs();
+  }catch(e){ toast("刪除失敗: " + e.message); }
 }
 async function saveCell(td, value){
   if (!td.querySelector("input")) return;   // 已經被 Escape 復原
