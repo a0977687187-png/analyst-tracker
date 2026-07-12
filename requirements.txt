@@ -3,3 +3,5 @@ feedparser
 youtube-transcript-api
 playwright
 flask
+yt-dlp
+faster-whisper

@@ -53,6 +53,59 @@ def write_md(analyst, date_str, title, url, source, body):
     return path
 
 
+# ---------------- Whisper 語音辨識 (無字幕影片的後備方案) ----------------
+# 頻道設定加 "whisper": true 才啟用 (如理財達人秀關閉了字幕功能)。
+# 流程: yt-dlp 下載音訊 -> faster-whisper 本地辨識 -> 逐字稿。全程在本機執行。
+
+AUDIO_DIR = os.path.join(os.environ.get("LOCALAPPDATA", BASE), "analyst_tracker_audio")
+_whisper_model = None
+
+
+def get_whisper_model():
+    global _whisper_model
+    if _whisper_model is None:
+        from faster_whisper import WhisperModel
+        print("    (載入 Whisper 語音模型, 首次需下載約460MB...)")
+        _whisper_model = WhisperModel("small", device="cpu", compute_type="int8")
+    return _whisper_model
+
+
+def transcribe_whisper(vid):
+    """下載音訊並用 Whisper 辨識, 回傳逐字稿文字; 失敗回傳 None"""
+    import yt_dlp
+    os.makedirs(AUDIO_DIR, exist_ok=True)
+    audio_path = os.path.join(AUDIO_DIR, f"{vid}.m4a")
+    try:
+        if not os.path.exists(audio_path):
+            print("    (下載音訊中...)")
+            ydl_opts = {"format": "bestaudio[ext=m4a]/bestaudio",
+                        "outtmpl": os.path.join(AUDIO_DIR, f"{vid}.%(ext)s"),
+                        "quiet": True, "no_warnings": True}
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([f"https://www.youtube.com/watch?v={vid}"])
+            if not os.path.exists(audio_path):  # 非 m4a 時找實際下載的檔案
+                cands = [f for f in os.listdir(AUDIO_DIR) if f.startswith(vid)]
+                if not cands:
+                    return None
+                audio_path = os.path.join(AUDIO_DIR, cands[0])
+        model = get_whisper_model()
+        print("    (Whisper 辨識中, 依影片長度約需數分鐘...)")
+        segments, info = model.transcribe(
+            audio_path, language="zh", beam_size=5, vad_filter=True,
+            initial_prompt="以下是台灣財經節目的逐字稿，請使用繁體中文，內容包含台股個股、代號與技術分析術語。")
+        text = "\n".join(seg.text.strip() for seg in segments if seg.text.strip())
+        return text or None
+    except Exception as ex:
+        print(f"    ! Whisper 辨識失敗: {str(ex)[:80]}")
+        return None
+    finally:
+        try:                              # 辨識完刪除音訊檔, 不佔硬碟
+            if os.path.exists(audio_path):
+                os.remove(audio_path)
+        except OSError:
+            pass
+
+
 # ---------------- YouTube ----------------
 
 def resolve_channel_id(url_or_handle):
@@ -120,9 +173,13 @@ def fetch_youtube(cfg, seen):
                 text = "\n".join(sn.text for sn in fetched)
                 body = f"## 逐字稿 (自動字幕, 語言:{fetched.language_code})\n\n{text}"
             except (NoTranscriptFound, TranscriptsDisabled):
-                body = "(此影片無可用字幕/逐字稿 — 僅存標題與說明)\n\n" + \
-                       html.unescape(getattr(e, "summary", ""))
-                print("    ! 無字幕, 僅存標題與影片說明")
+                text = transcribe_whisper(vid) if ch.get("whisper") else None
+                if text:
+                    body = f"## 逐字稿 (Whisper本地語音辨識, 可能有錯字)\n\n{text}"
+                else:
+                    body = "(此影片無可用字幕/逐字稿 — 僅存標題與說明)\n\n" + \
+                           html.unescape(getattr(e, "summary", ""))
+                    print("    ! 無字幕, 僅存標題與影片說明")
             except Exception as ex:
                 print(f"    ! 逐字稿抓取失敗: {ex}")
                 continue

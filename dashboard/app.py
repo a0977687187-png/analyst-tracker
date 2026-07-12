@@ -542,7 +542,8 @@ def backtest_one(rec):
     klines = get_stock_kline(code, months)
     after = [k for k in klines if k["time"] >= rec["date"]]
     if not after:
-        status = "等待收盤" if rec_date >= date.today() else "無資料"
+        # 有K線但都在發布日之前 = 發布後市場尚未交易(週末/假日/颱風假) -> 等待收盤
+        status = "等待收盤" if klines else "無資料"
         out.update({"status": status, "days": (date.today() - rec_date).days})
         return out
     base = after[0]["close"]          # 發布日(或次一交易日)收盤 = 績效基準價

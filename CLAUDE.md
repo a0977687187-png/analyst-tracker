@@ -11,8 +11,11 @@
 ## 程式架構
 - `fetch.py`：抓取工具。`search <頻道名>` 查 YouTube 頻道ID；`run [youtube|dcard]` 執行抓取。
   - YouTube：RSS (`feeds/videos.xml?channel_id=`) + youtube-transcript-api 抓逐字稿，需帶瀏覽器 UA 否則偶爾 404。
+  - **Whisper 後備**：投顧/電視節目頻道常「主動關閉字幕」（TranscriptsDisabled），config 該頻道設 `"whisper": true` 會改走 yt-dlp 下載音訊 + faster-whisper(small, int8, CPU) 本地辨識，音訊暫存 `%LOCALAPPDATA%\analyst_tracker_audio` 辨識完即刪。首次執行會下載約460MB模型。
+  - **多分析師節目**：config 設 `"multi_analyst": true`（如理財達人秀），提取觀點時 analyst 欄位要填「實際發言的分析師」（標題 feat.XXX 或逐字稿中主講人），不是頻道名。
   - Dcard：有 Cloudflare 真人驗證，必須用 Playwright 開「有視窗」瀏覽器由使用者點擊，cookies 存 `%LOCALAPPDATA%\analyst_tracker_browser_profile`。不可嘗試繞過驗證。
 - `config.json`：追蹤來源；`seen.json`：去重記錄（gitignore）；`data/`：抓取輸出（gitignore，版權考量不上傳）。
+- 追蹤名單原則：**只收有逐字稿的來源**（有字幕、或 whisper 可辨識）。無字幕又不開 whisper 的頻道只能靠標題猜，觀點信心低、統計無意義，使用者已決定不收。
 - 輸出格式：`data/<分析師>/<日期>_<標題>.md`，含 frontmatter（分析師/標題/來源/網址/日期）。
 
 ## 行情儀表板 (dashboard/)
