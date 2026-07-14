@@ -702,5 +702,8 @@ def home():
 
 
 if __name__ == "__main__":
-    print("儀表板: http://127.0.0.1:5177")
-    app.run(host="127.0.0.1", port=5177, debug=False)
+    # 預設 5177（雙擊「啟動儀表板.bat」等手動啟動情境維持不變）；
+    # 若由外部工具（如 Claude Code 的 preview 系統）透過 PORT 環境變數指定埠號，改用該埠號。
+    port = int(os.environ.get("PORT", 5177))
+    print(f"儀表板: http://127.0.0.1:{port}")
+    app.run(host="127.0.0.1", port=port, debug=False)

@@ -5,7 +5,8 @@
       "name": "dashboard",
       "runtimeExecutable": "python",
       "runtimeArgs": ["dashboard/app.py"],
-      "port": 5177
+      "port": 5177,
+      "autoPort": true
     }
   ]
 }
