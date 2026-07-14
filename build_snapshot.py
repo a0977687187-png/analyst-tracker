@@ -27,10 +27,11 @@ def build():
         "recs": recs,
     }
     html = TEMPLATE.replace("/*__DATA__*/", json.dumps(data, ensure_ascii=False))
-    out = os.path.join(DOCS, "index.html")
-    with open(out, "w", encoding="utf-8") as f:
-        f.write(html)
-    print(f"已產生 {os.path.relpath(out, BASE)}  ({len(data['views'])}筆觀點 / {len(data['analysts'])}位分析師 / 更新 {data['updated']})")
+    # 同時輸出到根目錄與 docs/, 讓 GitHub Pages 不論 Source 設「根目錄」或「/docs」都能顯示手機頁
+    for out in (os.path.join(BASE, "index.html"), os.path.join(DOCS, "index.html")):
+        with open(out, "w", encoding="utf-8") as f:
+            f.write(html)
+    print(f"已產生 index.html (根目錄 + docs/)  ({len(data['views'])}筆觀點 / {len(data['analysts'])}位分析師 / 更新 {data['updated']})")
 
 
 TEMPLATE = r"""<!DOCTYPE html>

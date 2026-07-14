@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>分析師績效 — 手機版</title>
+<style>
+:root{--navy-950:#0b1220;--navy-900:#101a2e;--navy-700:#1e2f4d;--navy-600:#2a3f61;
+--steel-400:#5b7699;--steel-300:#8ba3c2;--steel-100:#dbe4f0;--paper:#f4f6f9;--card:#fff;
+--amber:#f0a63a;--amber-dark:#c97f1e;--good:#2f9e6b;--bad:#d9483a;--line:#e3e8f0;
+--ink:#1a2332;--ink-soft:#5b6b85;--radius:10px;--shadow:0 1px 2px rgba(16,26,46,.06),0 6px 20px -8px rgba(16,26,46,.12)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:'Barlow','Microsoft JhengHei',system-ui,sans-serif;padding-bottom:40px}
+.nav{background:linear-gradient(180deg,var(--navy-900),var(--navy-950));border-bottom:3px solid var(--amber);
+padding:14px 16px;color:#fff;position:sticky;top:0;z-index:10}
+.nav .t{font-size:17px;font-weight:700;display:flex;align-items:center;gap:8px}
+.nav .mark{width:28px;height:28px;border-radius:7px;background:linear-gradient(150deg,var(--amber),var(--amber-dark));
+color:var(--navy-950);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px}
+.nav .u{font-size:11.5px;color:var(--steel-300);margin-top:3px}
+.wrap{max-width:760px;margin:0 auto;padding:14px 12px}
+h2{font-size:16px;margin:18px 4px 10px;font-family:'Barlow Condensed','Microsoft JhengHei',sans-serif}
+.mono{font-family:'JetBrains Mono',Consolas,monospace}
+.panel{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px;margin-bottom:12px}
+.podium{display:flex;gap:8px;align-items:flex-end;justify-content:center;margin:4px 0 14px;flex-wrap:wrap}
+.pod{border-radius:var(--radius);padding:12px 12px 14px;text-align:center;min-width:104px;flex:1;max-width:150px}
+.pod .crown{font-size:20px}.pod .name{font-weight:700;font-size:13.5px;margin-top:3px}
+.pod .stats{font-family:'JetBrains Mono',monospace;font-size:11.5px;margin-top:5px;line-height:1.7}
+.pod .stats b{font-size:15px}
+.pod-1{background:linear-gradient(160deg,#ffedbd,#f5c96b);box-shadow:0 0 18px rgba(240,166,58,.4),var(--shadow);border:1px solid #e8b64f;order:2}
+.pod-2{background:linear-gradient(160deg,#f2f5fa,#cfd6e0);border:1px solid #bcc6d4;order:1}
+.pod-3{background:linear-gradient(160deg,#f6e7d8,#dcb28b);border:1px solid #cba178;order:3}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{background:var(--navy-900);color:#fff;font-weight:500;font-size:11.5px;padding:7px 6px;text-align:right;white-space:nowrap}
+th:first-child{text-align:left;border-radius:6px 0 0 6px}th:last-child{border-radius:0 6px 6px 0}
+td{padding:6px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:12px}
+td:first-child{text-align:left;font-family:'Barlow','Microsoft JhengHei',sans-serif}
+.scroll{overflow-x:auto}
+.up{color:var(--bad)}.dn{color:var(--good)}
+.badge{font-size:10.5px;padding:1px 7px;border-radius:9px;font-weight:600;display:inline-block}
+.buy{background:#fdecea;color:var(--bad);border:1px solid #f2c4bf}
+.sell{background:#e8f5ef;color:var(--good);border:1px solid #bfe3d2}
+.st-win{background:var(--good);color:#fff}.st-loss{background:var(--bad);color:#fff}
+.st-open{background:#fdf3e0;color:var(--amber-dark)}.st-force{background:#eef1f6;color:var(--ink-soft)}
+.rt-A{background:var(--good);color:#fff}.rt-B{background:var(--amber);color:var(--navy-950)}
+.rt-C{background:#eef1f6;color:var(--ink-soft)}.rt-D{background:var(--bad);color:#fff}
+.reccard{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px}
+.reccard .h{display:flex;justify-content:space-between;font-size:13.5px;font-weight:600;gap:6px;flex-wrap:wrap}
+.reccard .b{font-size:11.5px;color:var(--ink-soft);margin-top:4px;line-height:1.6}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:6px}
+.kpi{background:var(--card);border-radius:9px;box-shadow:var(--shadow);padding:9px 10px;border-top:3px solid var(--navy-600)}
+.kpi.a{border-top-color:var(--amber)}.kpi.g{border-top-color:var(--good)}
+.kpi .l{font-size:9.5px;letter-spacing:.8px;color:var(--ink-soft);text-transform:uppercase}
+.kpi .v{font-family:'JetBrains Mono',monospace;font-size:19px;font-weight:600;margin-top:3px}
+.hint{color:var(--ink-soft);font-size:11px;padding:5px 2px;line-height:1.6}
+.notice{font-size:11px;color:var(--ink-soft);text-align:center;margin-top:18px;line-height:1.6}
+.empty{text-align:center;padding:26px;color:var(--ink-soft)}
+</style>
+</head>
+<body>
+<div class="nav">
+  <div class="t"><span class="mark">AT</span>分析師績效追蹤</div>
+  <div class="u" id="upd"></div>
+</div>
+<div class="wrap">
+  <div class="kpis" id="kpis"></div>
+  <h2>🏆 分析師績效排行</h2>
+  <div class="panel"><div class="podium" id="podium"></div><div class="scroll" id="atable"></div></div>
+  <h2>觀點回測驗證</h2>
+  <div class="panel"><div class="scroll" id="vtable"></div></div>
+  <h2>目前追蹤標的</h2>
+  <div id="recs"></div>
+  <div class="notice">⚠ 本頁為歷史回測與績效歸因, 僅為分析輔助, 不構成投資建議; 系統永不代為下單。<br>
+    資料每日更新一次 · 手機看到的是最近一次電腦運算的結果快照。</div>
+</div>
+<script>
+const D = {"updated": "2026-07-14 21:38", "analysts": [{"analyst": "陳威良", "avg_days": 5.0, "avg_return": -5.41, "closed": 1, "hi_win_rate": null, "low_sample": true, "max_loss": -5.41, "open_avg_return": -1.19, "rating": "D", "total": 3, "win_rate": 0.0}, {"analyst": "容逸燊", "avg_days": 4.0, "avg_return": -5.84, "closed": 1, "hi_win_rate": null, "low_sample": true, "max_loss": -5.84, "open_avg_return": 10.17, "rating": "D", "total": 3, "win_rate": 0.0}, {"analyst": "翁士峻", "avg_days": 5.0, "avg_return": -14.86, "closed": 1, "hi_win_rate": null, "low_sample": true, "max_loss": -14.86, "open_avg_return": 0.77, "rating": "D", "total": 3, "win_rate": 0.0}, {"analyst": "李永年", "avg_days": null, "avg_return": null, "closed": 0, "hi_win_rate": null, "low_sample": true, "max_loss": null, "open_avg_return": 0.0, "rating": "—", "total": 1, "win_rate": null}], "views": [{"analyst": "容逸燊", "base_price": 900.0, "close_date": "2026-07-13", "close_price": 847.44, "closed": true, "code": "2327", "confidence": 7, "date": "2026-07-09", "days": 4, "direction": "買入", "entry": "創高後第一次拉回三成~四成是不錯的切入位置, 目前自高檔回檔近三成", "id": 7, "name": "國巨", "note": "被動元件BB Ratio回到1.0以上健康水位, AI伺服器帶動下半年用量, 外資目標價1400-1500; 未提供停損(理財達人秀)", "return_pct": -5.84, "status": "停損", "stop": 847.44, "stop_estimated": true, "stop_source": "技術面(近20日低點)", "support": null, "target": 1500, "win": false}, {"analyst": "容逸燊", "base_price": 1350.0, "close_date": "2026-07-14", "close_price": 1515.0, "closed": false, "code": "6488", "confidence": 7, "date": "2026-07-09", "days": 5, "direction": "買入", "entry": "沿月線上攻, 回到月線附近都是不錯的切入位置", "id": 9, "name": "環球晶", "note": "矽晶圓龍頭, 12吋+AI伺服器/HPC強勁拉貨, 車用工控庫存去化告一段落, 矽晶圓合約價逐季跳增(理財達人秀; Whisper原文「環球金」依上下文確認)", "return_pct": 12.22, "status": "進行中", "stop": 1074.15, "stop_estimated": true, "stop_source": "技術面(近20日低點)", "support": null, "target": null, "win": false}, {"analyst": "容逸燊", "base_price": 172.5, "close_date": "2026-07-14", "close_price": 186.5, "closed": false, "code": "6182", "confidence": 6, "date": "2026-07-09", "days": 5, "direction": "買入", "entry": "漲勢強不追高, 回到十日線至月線之間是切入點", "id": 10, "name": "合晶", "note": "功率/車用矽晶圓高市佔, 12吋產能今年開出+方形晶圓FOPLP題材(理財達人秀; Whisper原文「合金」依上下文確認)", "return_pct": 8.12, "status": "進行中", "stop": 133.65, "stop_estimated": true, "stop_source": "技術面(近20日低點)", "support": null, "target": null, "win": false}, {"analyst": "翁士峻", "base_price": 223.0, "close_date": "2026-07-14", "close_price": 225.5, "closed": false, "code": "2313", "confidence": 6, "date": "2026-07-09", "days": 5, "direction": "買入", "entry": "大箱型區間下緣(200出頭支撐/300壓力), 跌破所有均線反而是買點, 分批蹲點", "id": 12, "name": "華通", "note": "低軌衛星+CPO光模塊題材, 6月營收年月雙增, 2028年AI+衛星占比目標>50%, 統一目標385/富邦344(理財達人秀)", "return_pct": 1.12, "status": "進行中", "stop": 200.0, "stop_estimated": true, "stop_source": "支撐位(分析師提供)", "support": 200, "target": 344, "win": false}, {"analyst": "翁士峻", "base_price": 240.0, "close_date": "2026-07-14", "close_price": 241.0, "closed": false, "code": "2645", "confidence": 7, "date": "2026-07-09", "days": 5, "direction": "買入", "entry": "突破箱型上緣, 回到五日線都是不錯買點", "id": 13, "name": "長榮航太", "note": "軍工無人機預算上看2400億受惠, 有維修本業獲利穩健, 5月EPS 0.81年增20倍, 400張大戶連續數週增加、持股86%(理財達人秀)", "return_pct": 0.42, "status": "進行中", "stop": 185.13, "stop_estimated": true, "stop_source": "技術面(近20日低點)", "support": null, "target": null, "win": false}, {"analyst": "翁士峻", "base_price": 90.7, "close_date": "2026-07-14", "close_price": 77.22, "closed": true, "code": "2484", "confidence": 6, "date": "2026-07-09", "days": 5, "direction": "買入", "entry": "強勢衝到102後整理, 拉回五日線是不錯的買點", "id": 16, "name": "希華", "note": "石英元件, 上週400張大戶增加第一名, 外資買超, 姿態高; 短打性質(理財達人秀; Whisper原文「西華」依上下文確認)", "return_pct": -14.86, "status": "停損", "stop": 77.22, "stop_estimated": true, "stop_source": "技術面(近20日低點)", "support": null, "target": null, "win": false}, {"analyst": "陳威良", "base_price": 91.2, "close_date": "2026-07-14", "close_price": 86.4, "closed": false, "code": "3605", "confidence": 7, "date": "2026-07-09", "days": 5, "direction": "買入", "entry": "大型圓底放量突破, 股價尚未離開千張大戶成本區, 可留意", "id": 18, "name": "宏致", "note": "連接器轉AI, AI比重10%->今年30-40%->明年逾5成、純度比肩龍頭貿聯, 上週千張大戶跳增(理財達人秀)", "return_pct": -5.26, "status": "進行中", "stop": 77.91, "stop_estimated": true, "stop_source": "技術面(近20日低點)", "support": null, "target": null, "win": false}, {"analyst": "陳威良", "base_price": 435.5, "close_date": "2026-07-14", "close_price": 448.0, "closed": false, "code": "2408", "confidence": 6, "date": "2026-07-09", "days": 5, "direction": "買入", "entry": "回到月均線重新站上升軌道, 相較前高仍有推升動能, 重點看法說會", "id": 19, "name": "南亞科", "note": "漲價推升毛利率挑戰70%+, 法人陸續調高目標價, 價量配合佳(漲時出量跌時量縮)(理財達人秀)", "return_pct": 2.87, "status": "進行中", "stop": 382.63, "stop_estimated": true, "stop_source": "技術面(近20日低點)", "support": null, "target": null, "win": false}, {"analyst": "陳威良", "base_price": 875.0, "close_date": "2026-07-14", "close_price": 827.64, "closed": true, "code": "3037", "confidence": 6, "date": "2026-07-09", "days": 5, "direction": "買入", "entry": "整理中反而是建倉布局好機會", "id": 20, "name": "欣興", "note": "載板缺貨明年起明顯、缺口放大到2028年, 毛利率與營收動能持續走高(理財達人秀)", "return_pct": -5.41, "status": "停損", "stop": 827.64, "stop_estimated": true, "stop_source": "技術面(近20日低點)", "support": null, "target": null, "win": false}, {"analyst": "李永年", "base_price": 778.0, "close_date": "2026-07-14", "close_price": 778.0, "closed": false, "code": "2327", "confidence": 6, "date": "2026-07-14", "days": 0, "direction": "賣出", "entry": "月線之下弱勢, 三天未能收復月線, 短均線(5日/10日/月線)呈空頭排列, 8月未收紅確認止跌前不宜逢低承接", "id": 21, "name": "國巨", "note": "警告勿接刀, 長黑重挫後歷史慣性常需2-4個月整理; 籌碼面仍偏多但技術面轉弱, [推估]若8月收紅突破慣性有機會反彈至1220元(理財達人秀feat.李永年); 與容逸燊(id7)同標的看多方向相反, 未合併", "return_pct": -0.0, "status": "進行中", "stop": 1232.2, "stop_estimated": true, "stop_source": "技術面(近20日高點)", "support": null, "target": null, "win": false}], "recs": [{"analyst": "容逸燊", "code": "2327", "confidence": 7, "date": "2026-07-09", "direction": "買入", "entry": "創高後第一次拉回三成~四成是不錯的切入位置, 目前自高檔回檔近三成", "id": 7, "name": "國巨", "note": "被動元件BB Ratio回到1.0以上健康水位, AI伺服器帶動下半年用量, 外資目標價1400-1500; 未提供停損(理財達人秀)", "stop": null, "support": null, "target": 1500}, {"analyst": "容逸燊", "code": "6488", "confidence": 7, "date": "2026-07-09", "direction": "買入", "entry": "沿月線上攻, 回到月線附近都是不錯的切入位置", "id": 9, "name": "環球晶", "note": "矽晶圓龍頭, 12吋+AI伺服器/HPC強勁拉貨, 車用工控庫存去化告一段落, 矽晶圓合約價逐季跳增(理財達人秀; Whisper原文「環球金」依上下文確認)", "stop": null, "support": null, "target": null}, {"analyst": "容逸燊", "code": "6182", "confidence": 6, "date": "2026-07-09", "direction": "買入", "entry": "漲勢強不追高, 回到十日線至月線之間是切入點", "id": 10, "name": "合晶", "note": "功率/車用矽晶圓高市佔, 12吋產能今年開出+方形晶圓FOPLP題材(理財達人秀; Whisper原文「合金」依上下文確認)", "stop": null, "support": null, "target": null}, {"analyst": "翁士峻", "code": "2313", "confidence": 6, "date": "2026-07-09", "direction": "買入", "entry": "大箱型區間下緣(200出頭支撐/300壓力), 跌破所有均線反而是買點, 分批蹲點", "id": 12, "name": "華通", "note": "低軌衛星+CPO光模塊題材, 6月營收年月雙增, 2028年AI+衛星占比目標>50%, 統一目標385/富邦344(理財達人秀)", "stop": null, "support": 200, "target": 344}, {"analyst": "翁士峻", "code": "2645", "confidence": 7, "date": "2026-07-09", "direction": "買入", "entry": "突破箱型上緣, 回到五日線都是不錯買點", "id": 13, "name": "長榮航太", "note": "軍工無人機預算上看2400億受惠, 有維修本業獲利穩健, 5月EPS 0.81年增20倍, 400張大戶連續數週增加、持股86%(理財達人秀)", "stop": null, "support": null, "target": null}, {"analyst": "翁士峻", "code": "2484", "confidence": 6, "date": "2026-07-09", "direction": "買入", "entry": "強勢衝到102後整理, 拉回五日線是不錯的買點", "id": 16, "name": "希華", "note": "石英元件, 上週400張大戶增加第一名, 外資買超, 姿態高; 短打性質(理財達人秀; Whisper原文「西華」依上下文確認)", "stop": null, "support": null, "target": null}, {"analyst": "陳威良", "code": "3605", "confidence": 7, "date": "2026-07-09", "direction": "買入", "entry": "大型圓底放量突破, 股價尚未離開千張大戶成本區, 可留意", "id": 18, "name": "宏致", "note": "連接器轉AI, AI比重10%->今年30-40%->明年逾5成、純度比肩龍頭貿聯, 上週千張大戶跳增(理財達人秀)", "stop": null, "support": null, "target": null}, {"analyst": "陳威良", "code": "2408", "confidence": 6, "date": "2026-07-09", "direction": "買入", "entry": "回到月均線重新站上升軌道, 相較前高仍有推升動能, 重點看法說會", "id": 19, "name": "南亞科", "note": "漲價推升毛利率挑戰70%+, 法人陸續調高目標價, 價量配合佳(漲時出量跌時量縮)(理財達人秀)", "stop": null, "support": null, "target": null}, {"analyst": "陳威良", "code": "3037", "confidence": 6, "date": "2026-07-09", "direction": "買入", "entry": "整理中反而是建倉布局好機會", "id": 20, "name": "欣興", "note": "載板缺貨明年起明顯、缺口放大到2028年, 毛利率與營收動能持續走高(理財達人秀)", "stop": null, "support": null, "target": null}, {"analyst": "李永年", "code": "2327", "confidence": 6, "date": "2026-07-14", "direction": "賣出", "entry": "月線之下弱勢, 三天未能收復月線, 短均線(5日/10日/月線)呈空頭排列, 8月未收紅確認止跌前不宜逢低承接", "id": 21, "name": "國巨", "note": "警告勿接刀, 長黑重挫後歷史慣性常需2-4個月整理; 籌碼面仍偏多但技術面轉弱, [推估]若8月收紅突破慣性有機會反彈至1220元(理財達人秀feat.李永年); 與容逸燊(id7)同標的看多方向相反, 未合併", "stop": null, "support": null, "target": null}]};
+const $ = id => document.getElementById(id);
+const fmt = n => n==null?"—":n.toLocaleString("zh-TW",{maximumFractionDigits:2});
+const stB = s => ({"達標":"st-win","停損":"st-loss","進行中":"st-open","等待收盤":"st-open","強制結案":"st-force"}[s]||"st-force");
+$("upd").textContent = "資料更新: " + D.updated;
+
+// KPI
+const closed = D.views.filter(v=>v.closed), wins = closed.filter(v=>v.win);
+const avg = closed.length ? closed.reduce((s,v)=>s+v.return_pct,0)/closed.length : null;
+$("kpis").innerHTML = `
+ <div class="kpi"><div class="l">觀點數</div><div class="v">${D.views.length}</div></div>
+ <div class="kpi g"><div class="l">整體勝率</div><div class="v">${closed.length?(wins.length/closed.length*100).toFixed(0)+"%":"—"}</div></div>
+ <div class="kpi a"><div class="l">平均報酬</div><div class="v ${(avg||0)>=0?"up":"dn"}">${avg==null?"—":(avg>=0?"+":"")+avg.toFixed(1)+"%"}</div></div>`;
+
+// 頒獎台
+const pod = D.analysts.slice(0,3), crowns=["👑","🥈","🥉"];
+if(pod.length){
+  $("podium").innerHTML = pod.map((a,i)=>`<div class="pod pod-${i+1}"><div class="crown">${crowns[i]}</div>
+    <div class="name">${a.analyst}</div><div class="stats">勝率 <b>${a.win_rate==null?"—":a.win_rate+"%"}</b><br>
+    ${a.avg_return==null?"":(a.avg_return>=0?"+":"")+a.avg_return+"% · "}評級 ${a.rating}${a.low_sample?" ※":""}</div></div>`).join("");
+  $("atable").innerHTML = `<table><thead><tr><th>分析師</th><th>觀點</th><th>結案</th><th>勝率</th><th>均報酬</th><th>評級</th></tr></thead><tbody>`+
+    D.analysts.map((a,i)=>`<tr><td>#${i+1} ${a.analyst}${a.low_sample?' <span class="badge rt-C">樣本不足</span>':""}</td>
+      <td>${a.total}</td><td>${a.closed}</td><td>${a.win_rate==null?"—":a.win_rate+"%"}</td>
+      <td class="${(a.avg_return||0)>=0?"up":"dn"}">${a.avg_return==null?"—":(a.avg_return>=0?"+":"")+a.avg_return+"%"}</td>
+      <td><span class="badge rt-${a.rating}">${a.rating}</span></td></tr>`).join("")+`</tbody></table>
+      <div class="hint">評級: A=勝率≥65%且樣本≥20 · B=≥55% · C=45–55% · D=<45% · ※=樣本<10統計信度不足</div>`;
+} else { $("podium").innerHTML=""; $("atable").innerHTML='<div class="empty">尚無績效資料</div>'; }
+
+// 觀點回測
+if(D.views.length){
+  $("vtable").innerHTML = `<table><thead><tr><th>標的</th><th>方向</th><th>分析師</th><th>發布</th><th>基準</th><th>停損</th><th>目標</th><th>報酬</th><th>狀態</th></tr></thead><tbody>`+
+    D.views.map(v=>`<tr><td>${v.code} ${v.name||""}</td>
+      <td><span class="badge ${v.direction==="買入"?"buy":"sell"}">${v.direction}</span></td>
+      <td>${v.analyst}</td><td>${v.date.slice(5)}</td><td>${fmt(v.base_price)}</td>
+      <td>${fmt(v.stop)}${v.stop_estimated?"*":""}</td><td>${fmt(v.target)}</td>
+      <td class="${(v.return_pct||0)>=0?"up":"dn"}">${v.return_pct==null?"—":(v.return_pct>=0?"+":"")+v.return_pct+"%"}</td>
+      <td><span class="badge ${stB(v.status)}">${v.status}</span></td></tr>`).join("")+`</tbody></table>
+      <div class="hint">停損含 * 為系統依技術面推估 · 結案規則: 觸目標=達標/觸停損=停損/逾60天=強制結案</div>`;
+} else $("vtable").innerHTML='<div class="empty">尚無觀點</div>';
+
+// 推薦標的
+if(D.recs.length){
+  $("recs").innerHTML = D.recs.map(r=>`<div class="reccard"><div class="h">
+    <span>${r.code} ${r.name} <span class="badge ${r.direction==="買入"?"buy":"sell"}">${r.direction}</span></span>
+    <span class="badge rt-B">信心 ${r.confidence}/10</span></div>
+    <div class="b">分析師: ${r.analyst} · ${r.date}<br>進場: ${r.entry||"—"}
+    ${r.target?" · 目標: "+r.target:""}${r.stop?" · 停損: "+r.stop:""}</div></div>`).join("");
+} else $("recs").innerHTML='<div class="empty">尚無推薦標的</div>';
+</script>
+</body>
+</html>
