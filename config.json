@@ -3,7 +3,7 @@
     {
       "name": "理財達人秀",
       "channel_id": "UCQvsuaih5lE0n_Ne54nNezg",
-      "max_videos": 3,
+      "max_videos": 6,
       "languages": [
         "zh-TW",
         "zh-Hant",
@@ -13,7 +13,8 @@
       ],
       "whisper": true,
       "multi_analyst": true,
-      "note": "節目型頻道關閉了字幕, 用Whisper本地語音辨識; 每集有多位來賓分析師, 提取觀點時 analyst 欄位填實際發言的分析師姓名(標題feat.XXX), 不填頻道名"
+      "title_include": "part ?[0-9]",
+      "note": "節目型頻道關閉了字幕, 用Whisper本地語音辨識; title_include 只抓 partN 完整版(每段一位分析師主講), 跳過1分鐘feat.短剪輯與重複的電視完整版; 提取觀點時 analyst 欄位填實際發言的分析師姓名, 不填頻道名"
     }
   ],
   "dcard": [

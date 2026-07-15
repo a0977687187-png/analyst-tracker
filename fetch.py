@@ -160,7 +160,14 @@ def fetch_youtube(cfg, seen):
         if not feed or not feed.entries:
             print("  ! RSS 抓取失敗 (重試3次), 請確認 channel_id 或稍後再試")
             continue
-        for e in feed.entries[:maxv]:
+        entries = feed.entries
+        # title_include: 只抓標題符合此regex的影片 (如理財達人秀只抓 partN 完整版, 跳過1分鐘短剪輯)
+        pat = ch.get("title_include")
+        if pat:
+            entries = [e for e in entries if re.search(pat, e.title, re.I)]
+            if not entries:
+                print(f"  (RSS中沒有符合「{pat}」的影片)")
+        for e in entries[:maxv]:
             vid = e.yt_videoid
             if vid in seen:
                 continue
